@@ -1,9 +1,19 @@
 import BigNumber from "bignumber.js";
 import { BLACKLIST } from "./constants/blacklist";
 import { client } from "./apollo/client";
-import { TOP_PAIRS, PAIRS_VOLUME_QUERY, TOKEN_BY_ADDRESS } from "./apollo/queries";
+import {
+  TOP_PAIRS,
+  PAIRS_VOLUME_QUERY,
+  TOKEN_BY_ADDRESS,
+  BUNDLES,
+  BUNDLE_BY_ID,
+} from "./apollo/queries";
 import { getBlockFromTimestamp } from "./blocks/queries";
 import {
+  BundlesQuery,
+  BundlesQueryVariables,
+  BundleQuery,
+  BundleQueryVariables,
   PairsVolumeQuery,
   PairsVolumeQueryVariables,
   TokenQuery,
@@ -14,6 +24,7 @@ import {
 
 const TOP_PAIR_LIMIT = 1000;
 export type Token = TokenQuery["token"];
+export type Bundle = BundleQuery["bundle"];
 export type Pair = TopPairsQuery["pairs"][number];
 
 export interface MappedDetailedPair extends Pair {
@@ -39,6 +50,41 @@ export async function getTokenByAddress(address: string): Promise<Token> {
   }
 
   return token;
+}
+
+export async function getBundles(): Promise<any> {
+  const {
+    data: { bundles },
+    errors: bundleErrors,
+  } = await client.query<BundlesQuery, BundlesQueryVariables>({
+    query: BUNDLES,
+    fetchPolicy: "cache-first",
+  });
+
+  if (bundleErrors && bundleErrors.length > 0) {
+    throw new Error("Failed to fetch token from subgraph");
+  }
+
+  return bundles;
+}
+
+export async function getBundle(bundleId: string): Promise<Bundle> {
+  const {
+    data: { bundle },
+    errors: bundleErrors,
+  } = await client.query<BundleQuery, BundleQueryVariables>({
+    query: BUNDLE_BY_ID,
+    variables: {
+      id: bundleId,
+    },
+    fetchPolicy: "cache-first",
+  });
+
+  if (bundleErrors && bundleErrors.length > 0) {
+    throw new Error("Failed to fetch token from subgraph");
+  }
+
+  return bundle;
 }
 
 export async function getTopPairs(): Promise<MappedDetailedPair[]> {
@@ -94,26 +140,24 @@ export async function getTopPairs(): Promise<MappedDetailedPair[]> {
     }, {}) ?? {};
 
   return (
-    pairs?.map(
-      (pair): MappedDetailedPair => {
-        const yesterday = yesterdayVolumeIndex[pair.id];
+    pairs?.map((pair): MappedDetailedPair => {
+      const yesterday = yesterdayVolumeIndex[pair.id];
 
-        return {
-          ...pair,
-          price:
-            pair.reserve0 !== "0" && pair.reserve1 !== "0"
-              ? new BigNumber(pair.reserve1).dividedBy(pair.reserve0).toString()
-              : "0",
-          previous24hVolumeToken0:
-            pair.volumeToken0 && yesterday?.volumeToken0
-              ? new BigNumber(pair.volumeToken0).minus(yesterday.volumeToken0).toString()
-              : new BigNumber(pair.volumeToken0).toString(),
-          previous24hVolumeToken1:
-            pair.volumeToken1 && yesterday?.volumeToken1
-              ? new BigNumber(pair.volumeToken1).minus(yesterday.volumeToken1).toString()
-              : new BigNumber(pair.volumeToken1).toString(),
-        };
-      }
-    ) ?? []
+      return {
+        ...pair,
+        price:
+          pair.reserve0 !== "0" && pair.reserve1 !== "0"
+            ? new BigNumber(pair.reserve1).dividedBy(pair.reserve0).toString()
+            : "0",
+        previous24hVolumeToken0:
+          pair.volumeToken0 && yesterday?.volumeToken0
+            ? new BigNumber(pair.volumeToken0).minus(yesterday.volumeToken0).toString()
+            : new BigNumber(pair.volumeToken0).toString(),
+        previous24hVolumeToken1:
+          pair.volumeToken1 && yesterday?.volumeToken1
+            ? new BigNumber(pair.volumeToken1).minus(yesterday.volumeToken1).toString()
+            : new BigNumber(pair.volumeToken1).toString(),
+      };
+    }) ?? []
   );
 }

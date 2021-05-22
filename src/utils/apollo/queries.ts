@@ -16,8 +16,25 @@ export const TOKEN_BY_ADDRESS = gql`
       id
       name
       symbol
-      derivedBNB
-      derivedUSD
+      derivedETH
+    }
+  }
+`;
+
+export const BUNDLE_BY_ID = gql`
+  query Bundle($id: ID!) {
+    bundle(id: $id) {
+      id
+      ethPrice
+    }
+  }
+`;
+
+export const BUNDLES = gql`
+  query Bundles {
+    bundles {
+      id
+      ethPrice
     }
   }
 `;
@@ -27,8 +44,7 @@ export const TOP_PAIRS = gql`
     id
     name
     symbol
-    derivedBNB
-    derivedUSD
+    derivedETH
   }
 
   query TopPairs($limit: Int!, $excludeTokenIds: [String!]!) {
@@ -49,7 +65,7 @@ export const TOP_PAIRS = gql`
       reserve1
       volumeToken0
       volumeToken1
-      reserveBNB
+      reserveETH
       reserveUSD
     }
   }

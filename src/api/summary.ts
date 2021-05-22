@@ -1,7 +1,5 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAddress } from "@ethersproject/address";
 import { getTopPairs } from "../utils";
-import { return200, return500 } from "../utils/response";
 
 interface ReturnShape {
   [tokenIds: string]: {
@@ -13,7 +11,7 @@ interface ReturnShape {
   };
 }
 
-export default async function (req: VercelRequest, res: VercelResponse): Promise<void> {
+export const getSummary = async (): Promise<any> => {
   try {
     const topPairs = await getTopPairs();
 
@@ -26,14 +24,15 @@ export default async function (req: VercelRequest, res: VercelResponse): Promise
         base_volume: pair.volumeToken0,
         quote_volume: pair.volumeToken1,
         liquidity: pair.reserveUSD,
-        liquidity_BNB: pair.reserveBNB,
+        liquidity_BNB: pair.reserveETH,
       };
 
       return accumulator;
     }, {});
 
-    return200(res, { updated_at: new Date().getTime(), data: pairs });
+    return { updated_at: new Date().getTime(), data: pairs };
   } catch (error) {
-    return500(res, error);
+    console.log("error: ", error);
+    return null;
   }
-}
+};
